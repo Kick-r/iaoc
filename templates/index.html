@@ -48,15 +48,18 @@
             width: 100%;
             padding: 10px 12px;
             border-radius: 12px;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            background: transparent;
+            border: 1px solid rgba(0, 0, 0, 0.16);
+            background: var(--bg);
             cursor: pointer;
             text-align: left;
             font-size: 14px;
+            transition: all 0.2s;
         }
 
         .new-chat-btn:hover {
-            border-color: rgba(0, 0, 0, 0.16);
+            border-color: rgba(0, 0, 0, 0.32);
+            background-color: var(--ver);
+            color: white;
         }
 
         /* NOVO: lista de chats */
