@@ -2,462 +2,541 @@
 <html lang="pt-BR">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chat Orb</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Orb</title>
 
-  <style>
-    :root {
-      --bg: #dce2ee;
-      --ver: #a11a32;
-      --primary: #caa5cb;
-      --dark: #24272c;
-      --white: #f2f3f9;
-    }
+    <style>
+        :root {
+            --bg: #dce2ee;
+            --ver: #a11a32;
+            --primary: #caa5cb;
+            --dark: #24272c;
+            --white: #f2f3f9;
+        }
 
-    * {
-      box-sizing: border-box;
-      font-family: Inter, system-ui, sans-serif;
-    }
+        * {
+            box-sizing: border-box;
+            font-family: Inter, system-ui, sans-serif;
+        }
 
-    body {
-      margin: 0;
-      background: var(--bg);
-      display: flex;
-      height: 100vh;
-      color: var(--dark);
-    }
+        body {
+            margin: 0;
+            background: var(--bg);
+            display: flex;
+            height: 100vh;
+            color: var(--dark);
+        }
 
-    .sidebar {
-      width: 14vw;
-      background: var(--white);
-      padding: 24px;
-      border-right: 1px solid rgba(0, 0, 0, 0.05);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+        .sidebar {
+            width: 14vw;
+            background: var(--white);
+            padding: 24px;
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
 
-    .sidebar h1 {
-      font-size: 18px;
-      margin: 0 0 6px 0;
-    }
+        .sidebar h1 {
+            font-size: 18px;
+            margin: 0 0 6px 0;
+        }
 
-    /* NOVO: botão "Criar novo chat" (sem mudar paleta) */
-    .new-chat-btn {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      background: transparent;
-      cursor: pointer;
-      text-align: left;
-      font-size: 14px;
-    }
+        /* NOVO: botão "Criar novo chat" (sem mudar paleta) */
+        .new-chat-btn {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+            font-size: 14px;
+        }
 
-    .new-chat-btn:hover {
-      border-color: rgba(0, 0, 0, 0.16);
-    }
+        .new-chat-btn:hover {
+            border-color: rgba(0, 0, 0, 0.16);
+        }
 
-    /* NOVO: lista de chats */
-    .chat-list {
-      flex: 1;
-      overflow-y: auto;
-      padding-right: 6px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 6px;
-    }
+        /* NOVO: lista de chats */
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 6px;
+        }
 
-    .chat-item {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      background: transparent;
-      cursor: pointer;
-      text-align: left;
-      font-size: 13px;
-      color: var(--dark);
-    }
+        .chat-item {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+            font-size: 13px;
+            color: var(--dark);
+        }
 
-    .chat-item.active {
-      border-color: rgba(0, 0, 0, 0.18);
-      background: rgba(161, 26, 50, 0.07);
-    }
+        .chat-item.active {
+            border-color: rgba(0, 0, 0, 0.18);
+            background: rgba(161, 26, 50, 0.07);
+        }
 
-    /* NOVO: rodapé com usuário/login */
-    .sidebar-footer {
-      padding-top: 12px;
-      border-top: 1px solid rgba(0, 0, 0, 0.06);
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
+        /* NOVO: rodapé com usuário/login */
+        .sidebar-footer {
+            padding-top: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
 
-    .user-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      max-width: 100%;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
+        .user-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
 
-    .user-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--ver);
-      flex: 0 0 auto;
-    }
+        .user-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--ver);
+            flex: 0 0 auto;
+        }
 
-    .login-btn {
-      border: none;
-      background: transparent;
-      color: var(--dark);
-      cursor: pointer;
-      text-decoration: underline;
-      padding: 0;
-      font-size: 13px;
-      flex: 0 0 auto;
-    }
+        .login-btn {
+            border: none;
+            background: transparent;
+            color: var(--dark);
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 0;
+            font-size: 13px;
+            flex: 0 0 auto;
+        }
 
-    .chat {
-      width: 86vw;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 3.5em 6px 24px 24px;
-    }
+        .chat {
+            width: 86vw;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 3.5em 6px 24px 24px;
+        }
 
-    .messages {
-      position: relative;
-      flex: 1;
-      overflow-y: auto;
-      padding-right: 12px;
-    }
+        .messages {
+            position: relative;
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 12px;
+        }
 
-    .msg {
-      width: fit-content;
-      max-width: 55%;
-      word-wrap: break-word;
-      padding: 12px 16px;
-      margin-bottom: 12px;
-      border-radius: 16px;
-      line-height: 1.4;
-    }
+        .msg {
+            width: fit-content;
+            max-width: 55%;
+            word-wrap: break-word;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            border-radius: 16px;
+            line-height: 1.4;
+        }
 
-    .msg.user {
-      background: var(--ver);
-      color: white;
-      margin-left: auto;
-    }
+        .msg.user {
+            background: var(--ver);
+            color: white;
+            margin-left: auto;
+        }
 
-    .msg.bot {
-      background: #24272c;
-      border: 1px solid rgba(0, 0, 0, 0.05);
-      color: white;
-    }
+        .msg.bot {
+            background: #24272c;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            color: white;
+        }
 
-    .input-area {
-      display: flex;
-      gap: 12px;
-      margin-top: 16px;
-      align-items: center;
-      justify-content: center;
-    }
+        .input-area {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            align-items: center;
+            justify-content: center;
+        }
 
-    .input-area input {
-      width: 70em;
-      padding: 14px 16px;
-      border-radius: 999px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      font-size: 14px;
-    }
+        .input-area input {
+            width: 70em;
+            padding: 14px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+        }
 
-    .send {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: none;
-      background: var(--ver);
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
-    }
-  </style>
+        .send {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: var(--ver);
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+            padding: 6px;
+            font-size: 13px;
+            z-index: 1000;
+        }
+
+        .context-menu button {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .context-menu button:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+    </style>
 </head>
 
 <body>
-  <div class="sidebar">
-    <div>
-      <h1>Maggie</h1>
-      <button id="newChatBtn" class="new-chat-btn">Criar novo chat</button>
+    <div class="sidebar">
+        <div>
+            <h1>Maggie</h1>
+            <button id="newChatBtn" class="new-chat-btn">Criar novo chat</button>
+        </div>
+
+        <div id="chatList" class="chat-list"></div>
+
+        <div class="sidebar-footer">
+            <div class="user-pill" title="">
+                <span class="user-dot"></span>
+                <span id="userName">Fazer login</span>
+            </div>
+            <button id="loginBtn" class="login-btn">Login</button>
+        </div>
     </div>
 
-    <div id="chatList" class="chat-list"></div>
+    <div class="chat">
+        <div class="messages" id="messages"></div>
 
-    <div class="sidebar-footer">
-      <div class="user-pill" title="">
-        <span class="user-dot"></span>
-        <span id="userName">Fazer login</span>
-      </div>
-      <button id="loginBtn" class="login-btn">Login</button>
+        <div class="input-area">
+            <input id="msgInput" type="text" placeholder="Escreve aí…" />
+            <button id="sendBtn" class="send">➤</button>
+        </div>
     </div>
-  </div>
 
-  <div class="chat">
-    <div class="messages" id="messages"></div>
+    <script>
+        const messagesEl = document.getElementById("messages");
+        const inputEl = document.getElementById("msgInput");
+        const sendBtn = document.getElementById("sendBtn");
 
-    <div class="input-area">
-      <input id="msgInput" type="text" placeholder="Escreve aí…" />
-      <button id="sendBtn" class="send">➤</button>
-    </div>
-  </div>
+        const chatListEl = document.getElementById("chatList");
+        const newChatBtn = document.getElementById("newChatBtn");
+        const userNameEl = document.getElementById("userName");
+        const loginBtn = document.getElementById("loginBtn");
 
-  <script>
-    const messagesEl = document.getElementById("messages");
-    const inputEl = document.getElementById("msgInput");
-    const sendBtn = document.getElementById("sendBtn");
+        let audioQueue = [];
+        let playing = false;
 
-    const chatListEl = document.getElementById("chatList");
-    const newChatBtn = document.getElementById("newChatBtn");
-    const userNameEl = document.getElementById("userName");
-    const loginBtn = document.getElementById("loginBtn");
+        // estado
+        let userId = localStorage.getItem("user_id");
+        let chatId = localStorage.getItem("chat_id");
 
-    let audioQueue = [];
-    let playing = false;
+        function addMsg(role, html) {
+            const div = document.createElement("div");
+            div.className = "msg " + role;
 
-    // estado
-    let userId = localStorage.getItem("user_id");
-    let chatId = localStorage.getItem("chat_id");
+            if (role === "bot") div.innerHTML = html;
+            else div.textContent = html;
 
-    function addMsg(role, html) {
-      const div = document.createElement("div");
-      div.className = "msg " + role;
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
 
-      if (role === "bot") div.innerHTML = html;
-      else div.textContent = html;
+        function clearMsgs() {
+            messagesEl.innerHTML = "";
+        }
 
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
+        async function playNextAudio() {
+            if (playing || audioQueue.length === 0) return;
 
-    function clearMsgs() {
-      messagesEl.innerHTML = "";
-    }
+            playing = true;
+            const item = audioQueue.shift();
 
-    async function playNextAudio() {
-      if (playing || audioQueue.length === 0) return;
+            try {
+                const audio = new Audio(item.url);
+                await audio.play();
 
-      playing = true;
-      const item = audioQueue.shift();
+                audio.addEventListener("ended", async () => {
+                    playing = false;
+                    try { await fetch(item.deleteUrl, { method: "DELETE" }); } catch { }
+                    playNextAudio();
+                });
 
-      try {
-        const audio = new Audio(item.url);
-        await audio.play();
+            } catch {
+                playing = false;
+            }
+        }
 
-        audio.addEventListener("ended", async () => {
-          playing = false;
-          try { await fetch(item.deleteUrl, { method: "DELETE" }); } catch { }
-          playNextAudio();
-        });
+        async function api(url, options = {}) {
+            const res = await fetch(url, options);
+            if (!res.ok) {
+                const t = await res.text();
+                throw new Error(`HTTP ${res.status}: ${t}`);
+            }
+            return res.json();
+        }
 
-      } catch {
-        playing = false;
-      }
-    }
+        function renderChatList(chats) {
+            chatListEl.innerHTML = "";
+            chats.forEach(c => {
+                const btn = document.createElement("button");
+                btn.className = "chat-item" + (String(c.id) === String(chatId) ? " active" : "");
+                btn.textContent = c.title || `Chat #${c.id}`;
+                btn.onclick = async () => {
+                    chatId = String(c.id);
+                    localStorage.setItem("chat_id", chatId);
+                    await carregarMensagensDoChat(chatId);
+                    await carregarChats(); // pra atualizar active
+                };
+                chatListEl.appendChild(btn);
+            });
+        }
 
-    async function api(url, options = {}) {
-      const res = await fetch(url, options);
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(`HTTP ${res.status}: ${t}`);
-      }
-      return res.json();
-    }
+        async function carregarChats() {
+            if (!userId) return;
+            const chats = await api(`/chats?user_id=${userId}`);
+            renderChatList(chats);
+        }
 
-    function renderChatList(chats) {
-      chatListEl.innerHTML = "";
-      chats.forEach(c => {
-        const btn = document.createElement("button");
-        btn.className = "chat-item" + (String(c.id) === String(chatId) ? " active" : "");
-        btn.textContent = c.title || `Chat #${c.id}`;
-        btn.onclick = async () => {
-          chatId = String(c.id);
-          localStorage.setItem("chat_id", chatId);
-          await carregarMensagensDoChat(chatId);
-          await carregarChats(); // pra atualizar active
+        async function carregarMensagensDoChat(cid) {
+            clearMsgs();
+            audioQueue = [];
+            playing = false;
+
+            const msgs = await api(`/chats/${cid}/messages`);
+            for (const m of msgs) {
+                addMsg(m.role === "assistant" ? "bot" : "user", m.content);
+            }
+
+            if (msgs.length === 0) {
+                addMsg("bot",
+                    "<b>Oi! Eu sou a Maggie 😊</b><br>" +
+                    "Me conta: o que tá te deixando mais perdido agora?"
+                );
+            }
+        }
+
+        async function criarUserSePrecisar() {
+            if (userId) return;
+
+            // MVP: cria usuário “anônimo” automático
+            const u = await api("/users", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: "Anônimo" })
+            });
+
+            userId = String(u.user_id);
+            localStorage.setItem("user_id", userId);
+            userNameEl.textContent = "Anônimo";
+            userNameEl.title = "Anônimo";
+        }
+
+        async function criarChatNovo() {
+            await criarUserSePrecisar();
+
+            const c = await api("/chats", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: userId, title: "Novo chat" })
+            });
+
+            chatId = String(c.chat_id);
+            localStorage.setItem("chat_id", chatId);
+
+            await carregarChats();
+            await carregarMensagensDoChat(chatId);
+        }
+
+        async function enviar() {
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            await criarUserSePrecisar();
+
+            if (!chatId) {
+                await criarChatNovo();
+            }
+
+            addMsg("user", text);
+            inputEl.value = "";
+
+            const typing = document.createElement("div");
+            typing.className = "msg bot";
+            typing.innerHTML = "<i>Maggie tá pensando…</i>";
+            messagesEl.appendChild(typing);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            try {
+                const data = await api("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: text, user_id: userId, chat_id: chatId })
+                });
+
+                typing.remove();
+
+                addMsg("bot", data.text);
+
+                if (data.audio) {
+                    const nome = data.audio.split("/").pop();
+                    audioQueue.push({
+                        url: data.audio,
+                        deleteUrl: `/audio/${nome}/delete`
+                    });
+                    playNextAudio();
+                }
+
+                // atualiza lista (se você quiser no futuro usar títulos inteligentes)
+                await carregarChats();
+
+            } catch (e) {
+                typing.remove();
+                addMsg("bot", "<i>Erro ao conectar com o servidor 😔</i><hr>" + String(e));
+            }
+        }
+
+        // "Login" MVP: só troca o nome local
+        loginBtn.onclick = () => {
+            const nome = prompt("Qual seu nome?");
+            if (!nome) return;
+            userNameEl.textContent = nome;
+            userNameEl.title = nome;
+
+            // opcional: no futuro, criar conta real
+            // por agora só visual mesmo
         };
-        chatListEl.appendChild(btn);
-      });
-    }
 
-    async function carregarChats() {
-      if (!userId) return;
-      const chats = await api(`/chats?user_id=${userId}`);
-      renderChatList(chats);
-    }
+        newChatBtn.addEventListener("click", criarChatNovo);
+        sendBtn.addEventListener("click", enviar);
+        inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
 
-    async function carregarMensagensDoChat(cid) {
-      clearMsgs();
-      audioQueue = [];
-      playing = false;
+        // init
+        (async () => {
+            // nome do usuário (MVP)
+            if (userId) {
+                userNameEl.textContent = "Usuário";
+                userNameEl.title = "Usuário";
+            }
 
-      const msgs = await api(`/chats/${cid}/messages`);
-      for (const m of msgs) {
-        addMsg(m.role === "assistant" ? "bot" : "user", m.content);
-      }
+            if (!userId) {
+                userNameEl.textContent = "Fazer login";
+                userNameEl.title = "Fazer login";
+            }
 
-      if (msgs.length === 0) {
-        addMsg("bot",
-            "<b>Oi! Eu sou a Maggie 😊</b><br>" +
-            "Me conta: o que tá te deixando mais perdido agora?"
-        );
-      }
-    }
+            // carrega chats existentes
+            if (userId) {
+                await carregarChats();
+            }
 
-    async function criarUserSePrecisar() {
-      if (userId) return;
+            // carrega mensagens do chat atual (se existir)
+            if (chatId) {
+                try {
+                    await carregarMensagensDoChat(chatId);
+                } catch {
+                    // se chatId inválido, cria um novo
+                    chatId = null;
+                    localStorage.removeItem("chat_id");
+                    clearMsgs();
+                    addMsg("bot",
+                        "<b>Oi! Eu sou a Maggie 😊</b><br>" +
+                        "Me conta: o que tá te deixando mais perdido agora?<hr>"
+                    );
+                }
+            } else {
+                // sem chat: mostra msg inicial
+                addMsg("bot",
+                    "<b>Oi! Eu sou a Maggie 😊</b><br>" +
+                    "Me conta: o que tá te deixando mais perdido agora?<hr>"
+                );
+            }
+        })();
 
-      // MVP: cria usuário “anônimo” automático
-      const u = await api("/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Anônimo" })
-      });
+        btn.oncontextmenu = (e) => {
+            e.preventDefault();
+            abrirMenuChat(e.pageX, e.pageY, c.id, btn.textContent);
+        };
 
-      userId = String(u.user_id);
-      localStorage.setItem("user_id", userId);
-      userNameEl.textContent = "Anônimo";
-      userNameEl.title = "Anônimo";
-    }
+        function abrirMenuChat(x, y, chatId, currentTitle) {
+            fecharMenu();
 
-    async function criarChatNovo() {
-      await criarUserSePrecisar();
+            const menu = document.createElement("div");
+            menu.className = "context-menu";
+            menu.style.left = x + "px";
+            menu.style.top = y + "px";
 
-      const c = await api("/chats", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, title: "Novo chat" })
-      });
+            const rename = document.createElement("button");
+            rename.textContent = "Renomear";
+            rename.onclick = async () => {
+                const novo = prompt("Novo nome do chat:", currentTitle);
+                if (!novo) return;
 
-      chatId = String(c.chat_id);
-      localStorage.setItem("chat_id", chatId);
+                await fetch(`/chats/${chatId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title: novo })
+                });
 
-      await carregarChats();
-      await carregarMensagensDoChat(chatId);
-    }
+                fecharMenu();
+                carregarChats();
+            };
 
-    async function enviar() {
-      const text = inputEl.value.trim();
-      if (!text) return;
+            const del = document.createElement("button");
+            del.textContent = "Deletar";
+            del.onclick = async () => {
+                if (!confirm("Tem certeza que quer deletar esse chat?")) return;
 
-      await criarUserSePrecisar();
+                await fetch(`/chats/${chatId}`, { method: "DELETE" });
 
-      if (!chatId) {
-        await criarChatNovo();
-      }
+                if (String(chatId) === String(localStorage.getItem("chat_id"))) {
+                    localStorage.removeItem("chat_id");
+                    clearMsgs();
+                }
 
-      addMsg("user", text);
-      inputEl.value = "";
+                fecharMenu();
+                carregarChats();
+            };
 
-      const typing = document.createElement("div");
-      typing.className = "msg bot";
-      typing.innerHTML = "<i>Maggie tá pensando…</i>";
-      messagesEl.appendChild(typing);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+            menu.append(rename, del);
+            document.body.appendChild(menu);
 
-      try {
-        const data = await api("/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, user_id: userId, chat_id: chatId })
-        });
-
-        typing.remove();
-
-        addMsg("bot", data.text);
-
-        if (data.audio) {
-          const nome = data.audio.split("/").pop();
-          audioQueue.push({
-            url: data.audio,
-            deleteUrl: `/audio/${nome}/delete`
-          });
-          playNextAudio();
+            document.addEventListener("click", fecharMenu, { once: true });
         }
 
-        // atualiza lista (se você quiser no futuro usar títulos inteligentes)
-        await carregarChats();
-
-      } catch (e) {
-        typing.remove();
-        addMsg("bot", "<i>Erro ao conectar com o servidor 😔</i><hr>" + String(e));
-      }
-    }
-
-    // "Login" MVP: só troca o nome local
-    loginBtn.onclick = () => {
-      const nome = prompt("Qual seu nome?");
-      if (!nome) return;
-      userNameEl.textContent = nome;
-      userNameEl.title = nome;
-
-      // opcional: no futuro, criar conta real
-      // por agora só visual mesmo
-    };
-
-    newChatBtn.addEventListener("click", criarChatNovo);
-    sendBtn.addEventListener("click", enviar);
-    inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
-
-    // init
-    (async () => {
-      // nome do usuário (MVP)
-      if (userId) {
-        userNameEl.textContent = "Usuário";
-        userNameEl.title = "Usuário";
-      }
-
-      if (!userId) {
-        userNameEl.textContent = "Fazer login";
-        userNameEl.title = "Fazer login";
-      }
-
-      // carrega chats existentes
-      if (userId) {
-        await carregarChats();
-      }
-
-      // carrega mensagens do chat atual (se existir)
-      if (chatId) {
-        try {
-          await carregarMensagensDoChat(chatId);
-        } catch {
-          // se chatId inválido, cria um novo
-          chatId = null;
-          localStorage.removeItem("chat_id");
-          clearMsgs();
-          addMsg("bot",
-            "<b>Oi! Eu sou a Maggie 😊</b><br>" +
-            "Me conta: o que tá te deixando mais perdido agora?<hr>"
-          );
+        function fecharMenu() {
+            document.querySelectorAll(".context-menu").forEach(m => m.remove());
         }
-      } else {
-        // sem chat: mostra msg inicial
-        addMsg("bot",
-          "<b>Oi! Eu sou a Maggie 😊</b><br>" +
-          "Me conta: o que tá te deixando mais perdido agora?<hr>"
-        );
-      }
-    })();
-  </script>
+
+    </script>
 </body>
 
 </html>

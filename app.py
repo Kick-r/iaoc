@@ -171,3 +171,42 @@ def delete_audio(nome):
         return {"ok": True}
     except FileNotFoundError:
         return {"ok": False}, 404
+
+# 5) Renomear chat
+@app.route("/chats/<int:chat_id>", methods=["PUT"])
+def rename_chat(chat_id):
+    data = request.json or {}
+    title = data.get("title", "").strip()
+
+    if not title:
+        return {"error": "Título inválido"}, 400
+
+    db = get_db()
+    try:
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        if not chat:
+            return {"error": "Chat não encontrado"}, 404
+
+        chat.title = title
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
+        
+# 6) Deletar chat e mensagens
+@app.route("/chats/<int:chat_id>", methods=["DELETE"])
+def delete_chat(chat_id):
+    db = get_db()
+    try:
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        if not chat:
+            return {"error": "Chat não encontrado"}, 404
+
+        # apaga mensagens primeiro
+        db.query(Message).filter(Message.chat_id == chat_id).delete()
+        db.delete(chat)
+        db.commit()
+        return {"ok": True}
+    finally:
+        db.close()
+
