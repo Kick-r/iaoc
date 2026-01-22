@@ -253,26 +253,34 @@
         const userNameEl = document.getElementById("userName");
         const loginBtn = document.getElementById("loginBtn");
 
-        let audioQueue = [];
-        let playing = false;
-
-        // estado
+        // estado persistente
         let userId = localStorage.getItem("user_id");
         let chatId = localStorage.getItem("chat_id");
 
-        function addMsg(role, html) {
+        // audio queue
+        let audioQueue = [];
+        let playing = false;
+
+        function addMsg(role, htmlOrText) {
             const div = document.createElement("div");
             div.className = "msg " + role;
-
-            if (role === "bot") div.innerHTML = html;
-            else div.textContent = html;
-
+            if (role === "bot") div.innerHTML = htmlOrText;
+            else div.textContent = htmlOrText;
             messagesEl.appendChild(div);
             messagesEl.scrollTop = messagesEl.scrollHeight;
         }
 
         function clearMsgs() {
             messagesEl.innerHTML = "";
+        }
+
+        async function api(url, options = {}) {
+            const res = await fetch(url, options);
+            if (!res.ok) {
+                const t = await res.text();
+                throw new Error(`HTTP ${res.status}: ${t}`);
+            }
+            return res.json();
         }
 
         async function playNextAudio() {
@@ -290,33 +298,107 @@
                     try { await fetch(item.deleteUrl, { method: "DELETE" }); } catch { }
                     playNextAudio();
                 });
-
             } catch {
                 playing = false;
             }
         }
 
-        async function api(url, options = {}) {
-            const res = await fetch(url, options);
-            if (!res.ok) {
-                const t = await res.text();
-                throw new Error(`HTTP ${res.status}: ${t}`);
-            }
-            return res.json();
+        function fecharMenu() {
+            document.querySelectorAll(".context-menu").forEach(m => m.remove());
+        }
+
+        function abrirMenuChat(x, y, chatIdMenu, currentTitle) {
+            fecharMenu();
+
+            const menu = document.createElement("div");
+            menu.className = "context-menu";
+            menu.style.left = x + "px";
+            menu.style.top = y + "px";
+
+            const rename = document.createElement("button");
+            rename.textContent = "Renomear";
+            rename.onclick = async () => {
+                const novo = prompt("Novo nome do chat:", currentTitle);
+                if (!novo) return;
+
+                try {
+                    await api(`/chats/${chatIdMenu}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ title: novo })
+                    });
+                } catch (e) {
+                    alert("Não consegui renomear 😔\n" + String(e));
+                }
+
+                fecharMenu();
+                await carregarChats();
+            };
+
+            const del = document.createElement("button");
+            del.textContent = "Deletar";
+            del.onclick = async () => {
+                if (!confirm("Tem certeza que quer deletar esse chat?")) return;
+
+                try {
+                    await api(`/chats/${chatIdMenu}`, { method: "DELETE" });
+                } catch (e) {
+                    alert("Não consegui deletar 😔\n" + String(e));
+                    fecharMenu();
+                    return;
+                }
+
+                // se deletou o chat atual, limpa
+                if (String(chatIdMenu) === String(chatId)) {
+                    chatId = null;
+                    localStorage.removeItem("chat_id");
+                    clearMsgs();
+                    mensagemInicial();
+                }
+
+                fecharMenu();
+                await carregarChats();
+            };
+
+            menu.append(rename, del);
+            document.body.appendChild(menu);
+
+            // clica fora fecha
+            setTimeout(() => {
+                document.addEventListener("click", fecharMenu, { once: true });
+            }, 0);
+        }
+
+        function mensagemInicial() {
+            addMsg("bot",
+                "<b>Oi! Eu sou a Maggie 😊</b><br>" +
+                "Me conta: o que tá te deixando mais perdido agora?<hr>" +
+                "<i>Tô aqui pra te ouvir.</i>"
+            );
         }
 
         function renderChatList(chats) {
             chatListEl.innerHTML = "";
+
             chats.forEach(c => {
                 const btn = document.createElement("button");
                 btn.className = "chat-item" + (String(c.id) === String(chatId) ? " active" : "");
                 btn.textContent = c.title || `Chat #${c.id}`;
+
+                // clique normal troca chat
                 btn.onclick = async () => {
                     chatId = String(c.id);
                     localStorage.setItem("chat_id", chatId);
                     await carregarMensagensDoChat(chatId);
-                    await carregarChats(); // pra atualizar active
+                    await carregarChats(); // atualiza active
                 };
+
+                // ✅ clique direito abre menu custom
+                btn.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    abrirMenuChat(e.pageX, e.pageY, c.id, btn.textContent);
+                };
+
                 chatListEl.appendChild(btn);
             });
         }
@@ -333,22 +415,19 @@
             playing = false;
 
             const msgs = await api(`/chats/${cid}/messages`);
+
             for (const m of msgs) {
                 addMsg(m.role === "assistant" ? "bot" : "user", m.content);
             }
 
             if (msgs.length === 0) {
-                addMsg("bot",
-                    "<b>Oi! Eu sou a Maggie 😊</b><br>" +
-                    "Me conta: o que tá te deixando mais perdido agora?"
-                );
+                mensagemInicial();
             }
         }
 
         async function criarUserSePrecisar() {
             if (userId) return;
 
-            // MVP: cria usuário “anônimo” automático
             const u = await api("/users", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -357,6 +436,7 @@
 
             userId = String(u.user_id);
             localStorage.setItem("user_id", userId);
+
             userNameEl.textContent = "Anônimo";
             userNameEl.title = "Anônimo";
         }
@@ -404,7 +484,6 @@
                 });
 
                 typing.remove();
-
                 addMsg("bot", data.text);
 
                 if (data.audio) {
@@ -416,127 +495,58 @@
                     playNextAudio();
                 }
 
-                // atualiza lista (se você quiser no futuro usar títulos inteligentes)
                 await carregarChats();
-
             } catch (e) {
                 typing.remove();
                 addMsg("bot", "<i>Erro ao conectar com o servidor 😔</i><hr>" + String(e));
             }
         }
 
-        // "Login" MVP: só troca o nome local
+        // login MVP (só visual)
         loginBtn.onclick = () => {
             const nome = prompt("Qual seu nome?");
             if (!nome) return;
             userNameEl.textContent = nome;
             userNameEl.title = nome;
-
-            // opcional: no futuro, criar conta real
-            // por agora só visual mesmo
         };
 
+        // eventos
         newChatBtn.addEventListener("click", criarChatNovo);
         sendBtn.addEventListener("click", enviar);
-        inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
+        inputEl.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") enviar();
+        });
 
         // init
         (async () => {
-            // nome do usuário (MVP)
+            // estado inicial do nome
             if (userId) {
                 userNameEl.textContent = "Usuário";
                 userNameEl.title = "Usuário";
-            }
-
-            if (!userId) {
+            } else {
                 userNameEl.textContent = "Fazer login";
                 userNameEl.title = "Fazer login";
             }
 
-            // carrega chats existentes
             if (userId) {
                 await carregarChats();
             }
 
-            // carrega mensagens do chat atual (se existir)
             if (chatId) {
                 try {
                     await carregarMensagensDoChat(chatId);
                 } catch {
-                    // se chatId inválido, cria um novo
                     chatId = null;
-                    localStorage.removeItem("chat_id");
+                    localStorage.removeItem("ch at_id");
                     clearMsgs();
-                    addMsg("bot",
-                        "<b>Oi! Eu sou a Maggie 😊</b><br>" +
-                        "Me conta: o que tá te deixando mais perdido agora?<hr>"
-                    );
+                    mensagemInicial();
                 }
             } else {
-                // sem chat: mostra msg inicial
-                addMsg("bot",
-                    "<b>Oi! Eu sou a Maggie 😊</b><br>" +
-                    "Me conta: o que tá te deixando mais perdido agora?<hr>"
-                );
+                mensagemInicial();
             }
         })();
-
-        btn.oncontextmenu = (e) => {
-            e.preventDefault();
-            abrirMenuChat(e.pageX, e.pageY, c.id, btn.textContent);
-        };
-
-        function abrirMenuChat(x, y, chatId, currentTitle) {
-            fecharMenu();
-
-            const menu = document.createElement("div");
-            menu.className = "context-menu";
-            menu.style.left = x + "px";
-            menu.style.top = y + "px";
-
-            const rename = document.createElement("button");
-            rename.textContent = "Renomear";
-            rename.onclick = async () => {
-                const novo = prompt("Novo nome do chat:", currentTitle);
-                if (!novo) return;
-
-                await fetch(`/chats/${chatId}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ title: novo })
-                });
-
-                fecharMenu();
-                carregarChats();
-            };
-
-            const del = document.createElement("button");
-            del.textContent = "Deletar";
-            del.onclick = async () => {
-                if (!confirm("Tem certeza que quer deletar esse chat?")) return;
-
-                await fetch(`/chats/${chatId}`, { method: "DELETE" });
-
-                if (String(chatId) === String(localStorage.getItem("chat_id"))) {
-                    localStorage.removeItem("chat_id");
-                    clearMsgs();
-                }
-
-                fecharMenu();
-                carregarChats();
-            };
-
-            menu.append(rename, del);
-            document.body.appendChild(menu);
-
-            document.addEventListener("click", fecharMenu, { once: true });
-        }
-
-        function fecharMenu() {
-            document.querySelectorAll(".context-menu").forEach(m => m.remove());
-        }
-
     </script>
+
 </body>
 
 </html>
