@@ -11,11 +11,10 @@ from db import init_db, SessionLocal, User, Chat, Message
 app = Flask(__name__)
 os.makedirs("audios", exist_ok=True)
 
-# IMPORTANTÍSSIMO: sessão (cookie)
-# No Render, crie env FLASK_SECRET_KEY com um valor aleatório forte
+# No Render/Prod: crie env FLASK_SECRET_KEY com algo forte
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-nao-use-em-prod")
 
-# inicia o banco (cria tabelas se não existir)
+# cria tabelas se não existir
 init_db()
 
 
@@ -38,7 +37,7 @@ def login_page():
 
 
 # =========================
-# AUTH (LOGIN / CADASTRO)
+# AUTH
 # =========================
 
 @app.route("/auth/me", methods=["GET"])
@@ -62,7 +61,7 @@ def auth_me():
                 "email": u.email,
                 "age": u.age,
                 "context": u.context,
-                "goal": u.goal,
+                "goal": u.goal
             }
         })
     finally:
@@ -75,10 +74,11 @@ def auth_signup():
 
     name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
-    password = (data.get("password") or "")
+    password = data.get("password") or ""
+
     age = data.get("age")
-    context = data.get("context")
-    goal = data.get("goal")
+    context = (data.get("context") or "").strip() or None
+    goal = (data.get("goal") or "").strip() or None
 
     if not name or not email or not password:
         return jsonify({"error": "nome, email e senha são obrigatórios"}), 400
@@ -101,10 +101,9 @@ def auth_signup():
         db.commit()
         db.refresh(u)
 
-        # cria sessão
         session["user_id"] = u.id
 
-        return jsonify({"ok": True, "user_id": u.id})
+        return jsonify({"ok": True, "user_id": u.id, "name": u.name})
     finally:
         db.close()
 
@@ -114,7 +113,7 @@ def auth_login():
     data = request.json or {}
 
     email = (data.get("email") or "").strip().lower()
-    password = (data.get("password") or "")
+    password = data.get("password") or ""
 
     if not email or not password:
         return jsonify({"error": "email e senha são obrigatórios"}), 400
@@ -138,42 +137,26 @@ def auth_logout():
 
 
 # =========================
-# MVP ANTIGO (ainda funciona)
+# CHATS (com login)
 # =========================
 
-@app.route("/users", methods=["POST"])
-def create_user():
-    """
-    MVP antigo: cria user “anônimo” rápido.
-    Continua existindo pra não quebrar o que você já fez.
-    Depois a gente desativa quando o login virar obrigatório.
-    """
-    data = request.json or {}
-    name = data.get("name")
-
-    db = get_db()
-    try:
-        u = User(name=name)
-        db.add(u)
-        db.commit()
-        db.refresh(u)
-        return jsonify({"user_id": u.id})
-    finally:
-        db.close()
+def require_login():
+    uid = session.get("user_id")
+    return uid
 
 
 @app.route("/chats", methods=["POST"])
 def create_chat():
-    data = request.json or {}
-    user_id = data.get("user_id")
-    title = data.get("title")
+    uid = require_login()
+    if not uid:
+        return jsonify({"error": "não autenticado"}), 401
 
-    if not user_id:
-        return jsonify({"error": "user_id obrigatório"}), 400
+    data = request.json or {}
+    title = (data.get("title") or "Novo chat").strip() or "Novo chat"
 
     db = get_db()
     try:
-        c = Chat(user_id=int(user_id), title=title)
+        c = Chat(user_id=int(uid), title=title)
         db.add(c)
         db.commit()
         db.refresh(c)
@@ -184,15 +167,15 @@ def create_chat():
 
 @app.route("/chats", methods=["GET"])
 def list_chats():
-    user_id = request.args.get("user_id")
-    if not user_id:
-        return jsonify({"error": "user_id obrigatório"}), 400
+    uid = require_login()
+    if not uid:
+        return jsonify({"error": "não autenticado"}), 401
 
     db = get_db()
     try:
         chats = (
             db.query(Chat)
-            .filter(Chat.user_id == int(user_id))
+            .filter(Chat.user_id == int(uid))
             .order_by(Chat.created_at.desc())
             .all()
         )
@@ -206,8 +189,16 @@ def list_chats():
 
 @app.route("/chats/<int:chat_id>/messages", methods=["GET"])
 def chat_messages(chat_id: int):
+    uid = require_login()
+    if not uid:
+        return jsonify({"error": "não autenticado"}), 401
+
     db = get_db()
     try:
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        if not chat or chat.user_id != int(uid):
+            return jsonify({"error": "chat não encontrado"}), 404
+
         msgs = (
             db.query(Message)
             .filter(Message.chat_id == chat_id)
@@ -224,25 +215,41 @@ def chat_messages(chat_id: int):
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.json or {}
+    uid = require_login()
+    if not uid:
+        return jsonify({"error": "não autenticado"}), 401
 
-    msg = data.get("message", "")
-    user_id = data.get("user_id")
+    data = request.json or {}
+    msg = data.get("message", "").strip()
     chat_id = data.get("chat_id")
 
-    if not msg.strip():
+    if not msg:
         return jsonify({"text": "<i>Escreve alguma coisa aí 😅</i>", "audio": None})
 
-    if not user_id or not chat_id:
-        return jsonify({"error": "user_id e chat_id são obrigatórios"}), 400
+    if not chat_id:
+        return jsonify({"error": "chat_id é obrigatório"}), 400
 
     db = get_db()
     try:
-        # salva mensagem do usuário
+        chat_obj = db.query(Chat).filter(Chat.id == int(chat_id)).first()
+        if not chat_obj or chat_obj.user_id != int(uid):
+            return jsonify({"error": "chat não encontrado"}), 404
+
+        u = db.query(User).filter(User.id == int(uid)).first()
+        user_profile = None
+        if u:
+            user_profile = {
+                "name": u.name,
+                "age": u.age,
+                "context": u.context,
+                "goal": u.goal
+            }
+
+        # salva msg user
         db.add(Message(chat_id=int(chat_id), role="user", content=msg))
         db.commit()
 
-        # histórico (últimas 30 mensagens pra não explodir token)
+        # histórico (últimas 30)
         last_msgs = (
             db.query(Message)
             .filter(Message.chat_id == int(chat_id))
@@ -252,16 +259,15 @@ def chat():
 
         history = [{"role": m.role, "content": m.content} for m in last_msgs[:-1]]
 
-        texto = responder(msg, history=history)
+        texto = responder(msg, history=history, user_profile=user_profile, html=True)
 
-        # salva resposta da IA
+        # salva resposta
         db.add(Message(chat_id=int(chat_id), role="assistant", content=texto))
         db.commit()
 
     finally:
         db.close()
 
-    # gerar áudio (se falhar, não quebra o chat)
     audio_url = None
     try:
         audio = asyncio.run(gerar_audio(texto))
@@ -269,11 +275,56 @@ def chat():
     except:
         audio_url = None
 
-    return jsonify({
-        "text": texto,
-        "audio": audio_url
-    })
+    return jsonify({"text": texto, "audio": audio_url})
 
+
+@app.route("/chats/<int:chat_id>", methods=["PUT"])
+def rename_chat(chat_id):
+    uid = require_login()
+    if not uid:
+        return jsonify({"error": "não autenticado"}), 401
+
+    data = request.json or {}
+    title = (data.get("title") or "").strip()
+    if not title:
+        return jsonify({"error": "título inválido"}), 400
+
+    db = get_db()
+    try:
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        if not chat or chat.user_id != int(uid):
+            return jsonify({"error": "chat não encontrado"}), 404
+
+        chat.title = title
+        db.commit()
+        return jsonify({"ok": True})
+    finally:
+        db.close()
+
+
+@app.route("/chats/<int:chat_id>", methods=["DELETE"])
+def delete_chat(chat_id):
+    uid = require_login()
+    if not uid:
+        return jsonify({"error": "não autenticado"}), 401
+
+    db = get_db()
+    try:
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        if not chat or chat.user_id != int(uid):
+            return jsonify({"error": "chat não encontrado"}), 404
+
+        db.query(Message).filter(Message.chat_id == chat_id).delete()
+        db.delete(chat)
+        db.commit()
+        return jsonify({"ok": True})
+    finally:
+        db.close()
+
+
+# =========================
+# ÁUDIO
+# =========================
 
 @app.route("/audio/<nome>")
 def audio(nome):
@@ -287,40 +338,3 @@ def delete_audio(nome):
         return {"ok": True}
     except FileNotFoundError:
         return {"ok": False}, 404
-
-
-@app.route("/chats/<int:chat_id>", methods=["PUT"])
-def rename_chat(chat_id):
-    data = request.json or {}
-    title = data.get("title", "").strip()
-
-    if not title:
-        return {"error": "Título inválido"}, 400
-
-    db = get_db()
-    try:
-        chat = db.query(Chat).filter(Chat.id == chat_id).first()
-        if not chat:
-            return {"error": "Chat não encontrado"}, 404
-
-        chat.title = title
-        db.commit()
-        return {"ok": True}
-    finally:
-        db.close()
-
-
-@app.route("/chats/<int:chat_id>", methods=["DELETE"])
-def delete_chat(chat_id):
-    db = get_db()
-    try:
-        chat = db.query(Chat).filter(Chat.id == chat_id).first()
-        if not chat:
-            return {"error": "Chat não encontrado"}, 404
-
-        db.query(Message).filter(Message.chat_id == chat_id).delete()
-        db.delete(chat)
-        db.commit()
-        return {"ok": True}
-    finally:
-        db.close()

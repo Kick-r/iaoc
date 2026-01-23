@@ -4,7 +4,10 @@ import os
 
 AUDIO_DIR = "audios"
 
-async def gerar_audio(texto):
+
+async def gerar_audio(texto: str) -> str:
+    os.makedirs(AUDIO_DIR, exist_ok=True)
+
     nome = f"{uuid.uuid4()}.wav"
     caminho = os.path.join(AUDIO_DIR, nome)
 

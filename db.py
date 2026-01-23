@@ -1,7 +1,5 @@
 from datetime import datetime
-from sqlalchemy import (
-    create_engine, Column, Integer, String, Text, DateTime, ForeignKey
-)
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 DB_URL = "sqlite:///maggie.db"
@@ -20,15 +18,15 @@ class User(Base):
     # Nome exibido
     name = Column(String(80), nullable=True)
 
-    # ===== NOVOS CAMPOS (Login/Cadastro) =====
-    # OBS: deixei nullable=True pra não quebrar usuários antigos já criados no MVP.
-    # No signup/login a gente valida e exige esses campos.
+    # Login/Cadastro
+    # (nullable=True pra não quebrar usuário MVP antigo. No signup/login a gente exige.)
     email = Column(String(255), unique=True, nullable=True, index=True)
     password_hash = Column(String(255), nullable=True)
 
+    # Perfil que a IA usa
     age = Column(Integer, nullable=True)
-    context = Column(Text, nullable=True)  # "em poucas palavras..."
-    goal = Column(Text, nullable=True)     # "o que espera da Maggie..."
+    context = Column(Text, nullable=True)
+    goal = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -52,8 +50,8 @@ class Message(Base):
 
     id = Column(Integer, primary_key=True)
     chat_id = Column(Integer, ForeignKey("chats.id"), nullable=False)
-    role = Column(String(20), nullable=False)  # "user" | "assistant"
-    content = Column(Text, nullable=False)     # texto (pode ser HTML se você decidir depois)
+    role = Column(String(20), nullable=False)   # "user" | "assistant"
+    content = Column(Text, nullable=False)      # pode ser texto/HTML
     created_at = Column(DateTime, default=datetime.utcnow)
 
     chat = relationship("Chat", back_populates="messages")

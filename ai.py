@@ -65,9 +65,9 @@ Evitar respostas longas, excessivamente formais ou muito estruturadas
 
 def formatar_html(texto: str) -> str:
     """
-    Formatação simples e segura:
-    - Converte quebras de linha em <br>
-    - Separa parágrafos com <hr> quando houver linha em branco
+    Formatação simples:
+    - Quebra de linha vira <br>
+    - Linha em branco vira separador <hr>
     """
     if not isinstance(texto, str):
         return ""
@@ -77,7 +77,6 @@ def formatar_html(texto: str) -> str:
 
     partes = [p.strip() for p in re.split(r"\n\s*\n", t) if p.strip()]
     partes = [p.replace("\n", "<br>") for p in partes]
-
     return "<hr>".join(partes)
 
 
@@ -89,27 +88,24 @@ def responder(
 ) -> str:
     """
     texto: mensagem atual do usuário
-    history: histórico do chat
-    user_profile: infos do cadastro (SEM email/senha)
+    history: histórico do chat (lista {role, content})
+    user_profile: infos do cadastro (SEM email e SEM senha)
     """
 
     messages = [SYSTEM_MESSAGE]
 
-    # 🔹 CONTEXTO DO USUÁRIO (vem do cadastro)
+    # Contexto do cadastro (não inclui email/senha)
     if user_profile:
         perfil = f"""
 Contexto do usuário (use apenas para orientar melhor suas respostas):
-Nome: {user_profile.get("name")}
-Idade: {user_profile.get("age")}
-Situação atual: {user_profile.get("context")}
-Objetivo: {user_profile.get("goal")}
-"""
-        messages.append({
-            "role": "system",
-            "content": perfil.strip()
-        })
+Nome: {user_profile.get("name") or ""}
+Idade: {user_profile.get("age") or ""}
+Situação atual: {user_profile.get("context") or ""}
+Objetivo: {user_profile.get("goal") or ""}
+""".strip()
 
-    # 🔹 histórico do chat
+        messages.append({"role": "system", "content": perfil})
+
     if history:
         for m in history:
             role = m.get("role")
@@ -117,7 +113,6 @@ Objetivo: {user_profile.get("goal")}
             if role in ("user", "assistant") and isinstance(content, str) and content.strip():
                 messages.append({"role": role, "content": content})
 
-    # 🔹 mensagem atual
     messages.append({"role": "user", "content": texto})
 
     res = client.chat.completions.create(
@@ -125,6 +120,5 @@ Objetivo: {user_profile.get("goal")}
         messages=messages
     )
 
-    reply = res.choices[0].message.content or ""
-
+    reply = (res.choices[0].message.content or "").strip()
     return formatar_html(reply) if html else reply
