@@ -43,7 +43,6 @@
             margin: 0 0 6px 0;
         }
 
-        /* NOVO: botão "Criar novo chat" (sem mudar paleta) */
         .new-chat-btn {
             width: 100%;
             padding: 10px 12px;
@@ -62,7 +61,6 @@
             color: white;
         }
 
-        /* NOVO: lista de chats */
         .chat-list {
             flex: 1;
             overflow-y: auto;
@@ -90,7 +88,6 @@
             background: rgba(161, 26, 50, 0.07);
         }
 
-        /* NOVO: rodapé com usuário/login */
         .sidebar-footer {
             padding-top: 12px;
             border-top: 1px solid rgba(0, 0, 0, 0.06);
@@ -231,9 +228,9 @@
         <div class="sidebar-footer">
             <div class="user-pill" title="">
                 <span class="user-dot"></span>
-                <span id="userName">Fazer login</span>
+                <span id="userName">Usuário</span>
             </div>
-            <button id="loginBtn" class="login-btn">Login</button>
+            <button id="loginBtn" class="login-btn">Sair</button>
         </div>
     </div>
 
@@ -256,9 +253,19 @@
         const userNameEl = document.getElementById("userName");
         const loginBtn = document.getElementById("loginBtn");
 
-        // estado persistente
+        // estado persistente (AGORA é obrigatório)
         let userId = localStorage.getItem("user_id");
         let chatId = localStorage.getItem("chat_id");
+
+        // ✅ se não tiver login, vai pro /login
+        if (!userId) {
+            window.location.href = "/login";
+        }
+
+        // nome do usuário vindo do login
+        const userName = localStorage.getItem("user_name") || "Usuário";
+        userNameEl.textContent = userName;
+        userNameEl.title = userName;
 
         // audio queue
         let audioQueue = [];
@@ -351,7 +358,6 @@
                     return;
                 }
 
-                // se deletou o chat atual, limpa
                 if (String(chatIdMenu) === String(chatId)) {
                     chatId = null;
                     localStorage.removeItem("chat_id");
@@ -366,7 +372,6 @@
             menu.append(rename, del);
             document.body.appendChild(menu);
 
-            // clica fora fecha
             setTimeout(() => {
                 document.addEventListener("click", fecharMenu, { once: true });
             }, 0);
@@ -388,15 +393,13 @@
                 btn.className = "chat-item" + (String(c.id) === String(chatId) ? " active" : "");
                 btn.textContent = c.title || `Chat #${c.id}`;
 
-                // clique normal troca chat
                 btn.onclick = async () => {
                     chatId = String(c.id);
                     localStorage.setItem("chat_id", chatId);
                     await carregarMensagensDoChat(chatId);
-                    await carregarChats(); // atualiza active
+                    await carregarChats();
                 };
 
-                // ✅ clique direito abre menu custom
                 btn.oncontextmenu = (e) => {
                     e.preventDefault();
                     abrirMenuChat(e.pageX, e.pageY, c.id, btn.textContent);
@@ -407,7 +410,6 @@
         }
 
         async function carregarChats() {
-            if (!userId) return;
             const chats = await api(`/chats?user_id=${userId}`);
             renderChatList(chats);
         }
@@ -428,25 +430,7 @@
             }
         }
 
-        async function criarUserSePrecisar() {
-            if (userId) return;
-
-            const u = await api("/users", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: "Anônimo" })
-            });
-
-            userId = String(u.user_id);
-            localStorage.setItem("user_id", userId);
-
-            userNameEl.textContent = "Anônimo";
-            userNameEl.title = "Anônimo";
-        }
-
         async function criarChatNovo() {
-            await criarUserSePrecisar();
-
             const c = await api("/chats", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -463,8 +447,6 @@
         async function enviar() {
             const text = inputEl.value.trim();
             if (!text) return;
-
-            await criarUserSePrecisar();
 
             if (!chatId) {
                 await criarChatNovo();
@@ -505,42 +487,29 @@
             }
         }
 
-        // login MVP (só visual)
+        // ✅ agora "Sair" de verdade
         loginBtn.onclick = () => {
-            const nome = prompt("Qual seu nome?");
-            if (!nome) return;
-            userNameEl.textContent = nome;
-            userNameEl.title = nome;
+            localStorage.removeItem("user_id");
+            localStorage.removeItem("user_name");
+            localStorage.removeItem("chat_id");
+            window.location.href = "/login";
         };
 
-        // eventos
         newChatBtn.addEventListener("click", criarChatNovo);
         sendBtn.addEventListener("click", enviar);
         inputEl.addEventListener("keydown", (e) => {
             if (e.key === "Enter") enviar();
         });
 
-        // init
         (async () => {
-            // estado inicial do nome
-            if (userId) {
-                userNameEl.textContent = "Usuário";
-                userNameEl.title = "Usuário";
-            } else {
-                userNameEl.textContent = "Fazer login";
-                userNameEl.title = "Fazer login";
-            }
-
-            if (userId) {
-                await carregarChats();
-            }
+            await carregarChats();
 
             if (chatId) {
                 try {
                     await carregarMensagensDoChat(chatId);
                 } catch {
                     chatId = null;
-                    localStorage.removeItem("ch at_id");
+                    localStorage.removeItem("chat_id"); // ✅ corrigido
                     clearMsgs();
                     mensagemInicial();
                 }
@@ -551,5 +520,4 @@
     </script>
 
 </body>
-
 </html>

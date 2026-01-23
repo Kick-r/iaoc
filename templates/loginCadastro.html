@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login / Cadastro — Maggie</title>
+  <style>
+    :root{
+      --bg: #dce2ee;
+      --ver: #a11a32;
+      --dark: #24272c;
+      --white:#f2f3f9;
+      --shadow: 0 22px 60px rgba(36,39,44,.18);
+      --radius: 26px;
+    }
+
+    *{ box-sizing:border-box; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body{
+      margin:0;
+      min-height:100vh;
+      background: var(--bg);
+      color: var(--dark);
+      overflow:hidden;
+    }
+
+    /* Partículas */
+    #bgParticles{
+      position:fixed;
+      inset:0;
+      width:100%;
+      height:100%;
+      z-index:0;
+      pointer-events:none;
+    }
+
+    .stage{
+      position:relative;
+      z-index:1;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+
+    .brand{
+      position:fixed;
+      top:22px;
+      left:22px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      z-index:2;
+      user-select:none;
+    }
+    .logoDot{
+      width:14px;height:14px;border-radius:99px;background:var(--ver);
+      box-shadow: 0 0 0 10px rgba(161,26,50,.10);
+    }
+    .brand b{ letter-spacing:.2px; }
+
+    /* Card base */
+    .card{
+      width:min(430px, 92vw);
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(36,39,44,.08);
+      overflow:hidden;
+      transform-origin:center;
+
+      height: auto;
+      min-height: 260px;
+      max-height: 82vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .cardHeader{
+      padding:20px 22px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .title{
+      margin:0;
+      font-size:18px;
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .badge{
+      font-size:12px;
+      font-weight:700;
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(161,26,50,.10);
+      color: var(--ver);
+      border:1px solid rgba(161,26,50,.18);
+      white-space:nowrap;
+    }
+
+    .cardBody{
+      padding: 12px 22px 22px;
+      overflow:auto;
+    }
+
+    label{
+      display:block;
+      font-size:12px;
+      font-weight:700;
+      margin:12px 0 8px;
+      opacity:.9;
+    }
+    input, textarea{
+      width:100%;
+      border-radius:16px;
+      border:1px solid rgba(36,39,44,.14);
+      background:#fff;
+      padding:13px 14px;
+      font-size:14px;
+      outline:none;
+      transition: .18s ease;
+      color:var(--dark);
+    }
+    textarea{ min-height:92px; resize:vertical; }
+    input:focus, textarea:focus{
+      border-color: rgba(161,26,50,.55);
+      box-shadow: 0 0 0 6px rgba(161,26,50,.12);
+    }
+
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .row .full{ grid-column: 1 / -1; }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      margin-top:16px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .btn{
+      border:0;
+      border-radius:999px;
+      padding:12px 16px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.18s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      user-select:none;
+    }
+    .btnPrimary{
+      background: var(--ver);
+      color: var(--white);
+      box-shadow: 0 10px 20px rgba(161,26,50,.25);
+    }
+    .btnPrimary:hover{ transform: translateY(-1px); }
+    .btnGhost{
+      background: transparent;
+      color: var(--dark);
+      border:1px solid rgba(36,39,44,.14);
+    }
+    .btnGhost:hover{ border-color: rgba(161,26,50,.35); }
+
+    .linkRow{
+      margin-top: 14px;
+      font-size: 13px;
+      opacity:.95;
+    }
+    .linkRow a{
+      color: var(--ver);
+      font-weight:900;
+      text-decoration:none;
+      cursor:pointer;
+    }
+    .linkRow a:hover{ text-decoration:underline; }
+
+    /* Tremidinha + puff */
+    .shake{ animation: shake .35s ease-in-out 1; }
+    @keyframes shake{
+      0%{ transform: translateX(0) rotate(0deg); }
+      20%{ transform: translateX(-6px) rotate(-.6deg); }
+      40%{ transform: translateX(6px) rotate(.6deg); }
+      60%{ transform: translateX(-4px) rotate(-.4deg); }
+      80%{ transform: translateX(4px) rotate(.4deg); }
+      100%{ transform: translateX(0) rotate(0deg); }
+    }
+
+    .smoke{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:0;
+      transition: opacity .2s ease;
+      z-index:5;
+    }
+    .smoke.show{ opacity:1; }
+    .smoke span{
+      position:absolute;
+      left:50%;
+      top:52%;
+      width:16px;height:16px;
+      border-radius:999px;
+      background: rgba(36,39,44,.16);
+      filter: blur(1px);
+      transform: translate(-50%,-50%);
+      animation: puff 900ms ease-out forwards;
+    }
+    .smoke span:nth-child(2){ animation-delay: 80ms; width:22px;height:22px; opacity:.85; }
+    .smoke span:nth-child(3){ animation-delay: 140ms; width:28px;height:28px; opacity:.7; }
+    .smoke span:nth-child(4){ animation-delay: 200ms; width:34px;height:34px; opacity:.55; }
+    .smoke span:nth-child(5){ animation-delay: 260ms; width:40px;height:40px; opacity:.45; }
+    @keyframes puff{
+      0%{ transform: translate(-50%,-50%) scale(1); opacity:.0; }
+      12%{ opacity:.85; }
+      100%{ transform: translate(-50%,-70%) scale(6.2); opacity:0; }
+    }
+
+    /* Progress bar */
+    .progress{
+      height: 4px;
+      width:100%;
+      background: rgba(36,39,44,.08);
+      overflow:hidden;
+    }
+    .progress > i{
+      display:block;
+      height:100%;
+      width: 25%;
+      background: var(--ver);
+      border-radius:999px;
+      transition: width .28s ease;
+    }
+
+    .hint{
+      font-size:12px;
+      opacity:.75;
+      margin-top:10px;
+      line-height:1.35;
+    }
+
+    #loginView{ display:block; position:relative; }
+    #signupView{ display:none; }
+
+    .step{
+      display:none;
+      animation: stepIn .25s ease;
+    }
+    .step.active{ display:block; }
+    @keyframes stepIn{
+      from{ opacity:0; transform: translateX(12px); }
+      to{ opacity:1; transform: translateX(0); }
+    }
+    .stepOutLeft{
+      animation: stepOutLeft .25s ease forwards;
+    }
+    @keyframes stepOutLeft{
+      from{ opacity:1; transform: translateX(0); }
+      to{ opacity:0; transform: translateX(-18px); }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="bgParticles"></canvas>
+
+  <div class="brand">
+    <div class="logoDot"></div>
+    <b>Maggie</b>
+  </div>
+
+  <div class="stage">
+
+    <!-- LOGIN CARD -->
+    <div id="loginView" class="card">
+      <div class="smoke" id="smoke">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+
+      <div class="cardHeader">
+        <h1 class="title">Entrar</h1>
+        <div class="badge">Mentora virtual</div>
+      </div>
+
+      <div class="cardBody">
+        <label>Email</label>
+        <input id="loginEmail" type="email" placeholder="seuemail@exemplo.com" />
+
+        <label>Senha</label>
+        <input id="loginPass" type="password" placeholder="••••••••" />
+
+        <div class="actions">
+          <button class="btn btnPrimary" id="btnLogin">Entrar ➜</button>
+        </div>
+
+        <div class="linkRow">
+          não tem cadastro, <a id="goSignup">Cadastra-se</a>
+        </div>
+
+        <div class="hint">
+          Cadastro rápido, sem interrogatório. Só o suficiente pra Maggie falar com contexto.
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signupView" class="card">
+      <div class="progress"><i id="bar"></i></div>
+
+      <div class="cardHeader">
+        <h1 class="title" id="signupTitle">Criar conta</h1>
+        <div class="badge" id="stepBadge">Passo 1/4</div>
+      </div>
+
+      <div class="cardBody">
+        <!-- STEP 1 -->
+        <div class="step active" data-step="1">
+          <div class="row">
+            <div class="full">
+              <label>Nome</label>
+              <input id="name" type="text" placeholder="Seu nome" />
+            </div>
+            <div class="full">
+              <label>Email</label>
+              <input id="email" type="email" placeholder="seuemail@exemplo.com" />
+            </div>
+            <div>
+              <label>Senha</label>
+              <input id="pass" type="password" placeholder="••••••••" />
+            </div>
+            <div>
+              <label>Idade</label>
+              <input id="age" type="number" min="10" max="99" placeholder="17" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btnGhost" id="backToLogin">Voltar</button>
+            <button class="btn btnPrimary" id="next">Próximo ➜</button>
+          </div>
+
+          <div class="hint">Sem drama: só pra criar a conta mesmo.</div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step" data-step="2">
+          <label>Em poucas palavras, o que você anda tentando construir pra sua vida hoje?</label>
+          <textarea id="context" placeholder="Pode ser simples. Ex: 'quero ajudar em casa', 'quero viver de música', 'tô perdido e quero clareza'..."></textarea>
+
+          <div class="actions">
+            <button class="btn btnGhost" id="back">Voltar</button>
+            <button class="btn btnPrimary" id="next2">Próximo ➜</button>
+          </div>
+
+          <div class="hint">Isso aqui só evita a Maggie ficar chutando tua vida.</div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step" data-step="3">
+          <label>O que você espera que a Maggie te ajude a pensar ou organizar agora?</label>
+          <textarea id="goal" placeholder="Ex: 'arrumar um trampo', 'decidir um curso', 'montar um plano', 'começar do zero'..."></textarea>
+
+          <div class="actions">
+            <button class="btn btnGhost" id="back2">Voltar</button>
+            <button class="btn btnPrimary" id="next3">Próximo ➜</button>
+          </div>
+
+          <div class="hint">Depois no chat a gente aprofunda com calma.</div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step" data-step="4">
+          <div style="line-height:1.45; font-size:14px;">
+            <p style="margin:0 0 10px;">
+              Essas informações servem só pra personalizar sua experiência com a Maggie.
+            </p>
+            <p style="margin:0 0 10px;">
+              <b>Só você e a plataforma</b> conseguem ver isso. Nada fica público.
+            </p>
+            <p style="margin:0;">
+              Você pode editar ou apagar depois, quando quiser.
+            </p>
+          </div>
+
+          <div style="margin-top:14px; display:flex; gap:10px; align-items:flex-start;">
+            <input id="consent" type="checkbox" style="width:18px; height:18px; margin-top:3px;">
+            <label for="consent" style="margin:0; font-size:13px; font-weight:800;">
+              Entendi e quero concluir o cadastro.
+            </label>
+          </div>
+
+          <div class="actions">
+            <button class="btn btnGhost" id="back3">Voltar</button>
+            <button class="btn btnPrimary" id="finish">Criar conta ➜</button>
+          </div>
+
+          <div class="hint">Sem pegadinha. Só privacidade e confiança.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+<script>
+  /* =========================
+     Se já tá logado, vaza pro chat
+  ========================== */
+  if (localStorage.getItem("user_id")) {
+    window.location.href = "/";
+  }
+
+  /* =========================
+     Partículas caindo
+  ========================== */
+  const canvas = document.getElementById('bgParticles');
+  const ctx = canvas.getContext('2d', { alpha: true });
+
+  function resize(){
+    canvas.width = window.innerWidth * devicePixelRatio;
+    canvas.height = window.innerHeight * devicePixelRatio;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const particles = Array.from({length: 80}, () => ({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    r: 1 + Math.random()*2.2,
+    v: 0.6 + Math.random()*1.6,
+    drift: -0.5 + Math.random()*1,
+    alpha: 0.18 + Math.random()*0.25
+  }));
+
+  function tickParticles(){
+    ctx.clearRect(0,0,window.innerWidth, window.innerHeight);
+
+    for(const p of particles){
+      p.y += p.v;
+      p.x += p.drift * 0.3;
+
+      if(p.y > window.innerHeight + 10){
+        p.y = -10;
+        p.x = Math.random() * window.innerWidth;
+      }
+      if(p.x < -10) p.x = window.innerWidth + 10;
+      if(p.x > window.innerWidth + 10) p.x = -10;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(161,26,50,${p.alpha})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(tickParticles);
+  }
+  tickParticles();
+
+  /* =========================
+     Login -> Signup (shake + fumaça)
+  ========================== */
+  const loginView = document.getElementById('loginView');
+  const signupView = document.getElementById('signupView');
+  const goSignup = document.getElementById('goSignup');
+  const smoke = document.getElementById('smoke');
+
+  goSignup.addEventListener('click', () => {
+    loginView.classList.remove('shake');
+    void loginView.offsetWidth;
+    loginView.classList.add('shake');
+
+    smoke.classList.add('show');
+
+    setTimeout(() => {
+      smoke.classList.remove('show');
+      loginView.style.display = 'none';
+      signupView.style.display = 'flex';
+      updateProgress();
+    }, 520);
+  });
+
+  document.getElementById('backToLogin').addEventListener('click', () => {
+    signupView.style.display = 'none';
+    loginView.style.display = 'block';
+    currentStep = 1;
+    setActiveStep(1, false);
+    updateProgress();
+  });
+
+  /* =========================
+     Steps
+  ========================== */
+  const steps = Array.from(document.querySelectorAll('.step'));
+  const bar = document.getElementById('bar');
+  const stepBadge = document.getElementById('stepBadge');
+
+  let currentStep = 1;
+
+  function setActiveStep(step, animateOut=true){
+    const current = steps.find(s => Number(s.dataset.step) === currentStep);
+    const next = steps.find(s => Number(s.dataset.step) === step);
+
+    if(!next) return;
+
+    if(animateOut && current){
+      current.classList.add('stepOutLeft');
+      setTimeout(() => {
+        current.classList.remove('stepOutLeft');
+        current.classList.remove('active');
+        next.classList.add('active');
+      }, 240);
+    } else {
+      steps.forEach(s => s.classList.remove('active'));
+      next.classList.add('active');
+    }
+
+    currentStep = step;
+    updateProgress();
+  }
+
+  function updateProgress(){
+    stepBadge.textContent = `Passo ${currentStep}/4`;
+    bar.style.width = `${(currentStep/4)*100}%`;
+  }
+
+  document.getElementById('next').addEventListener('click', () => setActiveStep(2));
+  document.getElementById('next2').addEventListener('click', () => setActiveStep(3));
+  document.getElementById('next3').addEventListener('click', () => setActiveStep(4));
+
+  document.getElementById('back').addEventListener('click', () => setActiveStep(1));
+  document.getElementById('back2').addEventListener('click', () => setActiveStep(2));
+  document.getElementById('back3').addEventListener('click', () => setActiveStep(3));
+
+  /* =========================
+     API helpers
+  ========================== */
+  async function postJSON(url, payload){
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  /* =========================
+     Login
+  ========================== */
+  document.getElementById('btnLogin').addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPass').value.trim();
+
+    if(!email || !password){
+      alert("Preenche email e senha 🙂");
+      return;
+    }
+
+    try{
+      const data = await postJSON("/auth/login", { email, password });
+      localStorage.setItem("user_id", data.user_id);
+      localStorage.setItem("user_name", data.name || "Usuário");
+      localStorage.removeItem("chat_id"); // opcional: começa limpo
+      window.location.href = "/";
+    }catch(e){
+      alert(e.message || String(e));
+    }
+  });
+
+  /* =========================
+     Cadastro
+  ========================== */
+  document.getElementById('finish').addEventListener('click', async () => {
+    if(!document.getElementById('consent').checked){
+      alert("Marca o 'Entendi' pra concluir 🙂");
+      return;
+    }
+
+    const payload = {
+      name: document.getElementById('name').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('pass').value.trim(),
+      age: document.getElementById('age').value.trim(),
+      context: document.getElementById('context').value.trim(),
+      goal: document.getElementById('goal').value.trim(),
+    };
+
+    if(!payload.email || !payload.password){
+      alert("Email e senha são obrigatórios 🙂");
+      return;
+    }
+
+    try{
+      const data = await postJSON("/auth/signup", payload);
+      localStorage.setItem("user_id", data.user_id);
+      localStorage.setItem("user_name", data.name || payload.name || "Usuário");
+      localStorage.removeItem("chat_id");
+      window.location.href = "/";
+    }catch(e){
+      alert(e.message || String(e));
+    }
+  });
+</script>
+</body>
+</html>

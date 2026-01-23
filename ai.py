@@ -1,5 +1,7 @@
 from groq import Groq
 import os
+import re
+from typing import List, Optional, Dict
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -60,24 +62,62 @@ Evitar respostas longas, excessivamente formais ou muito estruturadas
 """
 }
 
-def responder(texto: str, history: list | None = None) -> str:
+
+def formatar_html(texto: str) -> str:
+    """
+    Formatação simples e segura:
+    - Converte quebras de linha em <br>
+    - Separa parágrafos com <hr> quando houver linha em branco
+    """
+    if not isinstance(texto, str):
+        return ""
+
+    t = texto.strip()
+    t = t.replace("\r\n", "\n").replace("\r", "\n")
+
+    partes = [p.strip() for p in re.split(r"\n\s*\n", t) if p.strip()]
+    partes = [p.replace("\n", "<br>") for p in partes]
+
+    return "<hr>".join(partes)
+
+
+def responder(
+    texto: str,
+    history: Optional[List[Dict]] = None,
+    user_profile: Optional[Dict] = None,
+    html: bool = True
+) -> str:
     """
     texto: mensagem atual do usuário
-    history: lista de mensagens anteriores no formato:
-      [{"role":"user","content":"..."}, {"role":"assistant","content":"..."}]
+    history: histórico do chat
+    user_profile: infos do cadastro (SEM email/senha)
     """
 
-    # monta a conversa SEM estado global (bom pra multi-usuário / Render)
     messages = [SYSTEM_MESSAGE]
 
+    # 🔹 CONTEXTO DO USUÁRIO (vem do cadastro)
+    if user_profile:
+        perfil = f"""
+Contexto do usuário (use apenas para orientar melhor suas respostas):
+Nome: {user_profile.get("name")}
+Idade: {user_profile.get("age")}
+Situação atual: {user_profile.get("context")}
+Objetivo: {user_profile.get("goal")}
+"""
+        messages.append({
+            "role": "system",
+            "content": perfil.strip()
+        })
+
+    # 🔹 histórico do chat
     if history:
-        # garante formato certo
         for m in history:
             role = m.get("role")
             content = m.get("content")
             if role in ("user", "assistant") and isinstance(content, str) and content.strip():
                 messages.append({"role": role, "content": content})
 
+    # 🔹 mensagem atual
     messages.append({"role": "user", "content": texto})
 
     res = client.chat.completions.create(
@@ -85,5 +125,6 @@ def responder(texto: str, history: list | None = None) -> str:
         messages=messages
     )
 
-    reply = res.choices[0].message.content
-    return reply
+    reply = res.choices[0].message.content or ""
+
+    return formatar_html(reply) if html else reply
