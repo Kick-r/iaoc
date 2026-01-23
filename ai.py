@@ -1,9 +1,14 @@
+# ai.py
 from groq import Groq
 import os
 import re
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise RuntimeError("Faltou setar a variável de ambiente GROQ_API_KEY")
+
+client = Groq(api_key=GROQ_API_KEY)
 
 SYSTEM_MESSAGE = {
     "role": "system",
@@ -59,7 +64,7 @@ Não dar respostas prontas ou soluções definitivas
 Nunca sugerir mentir ou omitir idade ou dados pessoais
 Evitar repetir sugestões já invalidadas no contexto
 Evitar respostas longas, excessivamente formais ou muito estruturadas
-"""
+""".strip()
 }
 
 
@@ -73,38 +78,61 @@ def formatar_html(texto: str) -> str:
         return ""
 
     t = texto.strip()
-    t = t.replace("\r\n", "\n").replace("\r", "\n")
+    if not t:
+        return ""
 
+    t = t.replace("\r\n", "\n").replace("\r", "\n")
     partes = [p.strip() for p in re.split(r"\n\s*\n", t) if p.strip()]
     partes = [p.replace("\n", "<br>") for p in partes]
     return "<hr>".join(partes)
 
 
+def _clip(s: Optional[str], max_len: int = 800) -> Optional[str]:
+    if not s:
+        return None
+    s = str(s).strip()
+    if not s:
+        return None
+    if len(s) <= max_len:
+        return s
+    return s[:max_len].rstrip() + "…"
+
+
 def responder(
     texto: str,
-    history: Optional[List[Dict]] = None,
-    user_profile: Optional[Dict] = None,
+    history: Optional[List[Dict[str, Any]]] = None,
+    user_profile: Optional[Dict[str, Any]] = None,
     html: bool = True
 ) -> str:
     """
     texto: mensagem atual do usuário
     history: histórico do chat (lista {role, content})
     user_profile: infos do cadastro (SEM email e SEM senha)
+    html: se True, retorna com <br>/<hr>
     """
 
     messages = [SYSTEM_MESSAGE]
 
     # Contexto do cadastro (não inclui email/senha)
     if user_profile:
-        perfil = f"""
-Contexto do usuário (use apenas para orientar melhor suas respostas):
-Nome: {user_profile.get("name") or ""}
-Idade: {user_profile.get("age") or ""}
-Situação atual: {user_profile.get("context") or ""}
-Objetivo: {user_profile.get("goal") or ""}
-""".strip()
+        nome = (user_profile.get("name") or "").strip()
+        idade = user_profile.get("age")
+        contexto = _clip(user_profile.get("context"))
+        objetivo = _clip(user_profile.get("goal"))
 
-        messages.append({"role": "system", "content": perfil})
+        linhas = ["Contexto do usuário (use apenas para orientar melhor suas respostas):"]
+        if nome:
+            linhas.append(f"Nome: {nome}")
+        if idade is not None and str(idade).strip() != "":
+            linhas.append(f"Idade: {idade}")
+        if contexto:
+            linhas.append(f"Situação atual: {contexto}")
+        if objetivo:
+            linhas.append(f"Objetivo: {objetivo}")
+
+        # só adiciona se tiver algo além do título
+        if len(linhas) > 1:
+            messages.append({"role": "system", "content": "\n".join(linhas)})
 
     if history:
         for m in history:

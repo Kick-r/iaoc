@@ -1,8 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory, render_template, session
+# app.py
 import asyncio
 import os
 
+from flask import Flask, request, jsonify, send_from_directory, render_template, session
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 from ai import responder
 from tts import gerar_audio
@@ -13,6 +15,13 @@ os.makedirs("audios", exist_ok=True)
 
 # No Render/Prod: crie env FLASK_SECRET_KEY com algo forte
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-nao-use-em-prod")
+
+# cookies da sessão (Render usa https)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# Se estiver no Render (HTTPS), melhor setar Secure
+if os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL"):
+    app.config["SESSION_COOKIE_SECURE"] = True
 
 # cria tabelas se não existir
 init_db()
@@ -102,7 +111,6 @@ def auth_signup():
         db.refresh(u)
 
         session["user_id"] = u.id
-
         return jsonify({"ok": True, "user_id": u.id, "name": u.name})
     finally:
         db.close()
@@ -141,8 +149,7 @@ def auth_logout():
 # =========================
 
 def require_login():
-    uid = session.get("user_id")
-    return uid
+    return session.get("user_id")
 
 
 @app.route("/chats", methods=["POST"])
@@ -220,7 +227,7 @@ def chat():
         return jsonify({"error": "não autenticado"}), 401
 
     data = request.json or {}
-    msg = data.get("message", "").strip()
+    msg = (data.get("message") or "").strip()
     chat_id = data.get("chat_id")
 
     if not msg:
@@ -259,6 +266,7 @@ def chat():
 
         history = [{"role": m.role, "content": m.content} for m in last_msgs[:-1]]
 
+        # IA (com perfil do usuário)
         texto = responder(msg, history=history, user_profile=user_profile, html=True)
 
         # salva resposta
@@ -268,6 +276,7 @@ def chat():
     finally:
         db.close()
 
+    # áudio (não pode quebrar o chat)
     audio_url = None
     try:
         audio = asyncio.run(gerar_audio(texto))
@@ -328,13 +337,16 @@ def delete_chat(chat_id):
 
 @app.route("/audio/<nome>")
 def audio(nome):
-    return send_from_directory("audios", nome)
+    # evita path traversal
+    safe = secure_filename(nome)
+    return send_from_directory("audios", safe)
 
 
 @app.route("/audio/<nome>/delete", methods=["DELETE"])
 def delete_audio(nome):
+    safe = secure_filename(nome)
     try:
-        os.remove(os.path.join("audios", nome))
+        os.remove(os.path.join("audios", safe))
         return {"ok": True}
     except FileNotFoundError:
         return {"ok": False}, 404
