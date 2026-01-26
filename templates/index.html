@@ -112,18 +112,44 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            max-width: 100%;
+            min-width: 0;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
         }
 
-        .user-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: var(--ver);
+        /* ✅ NOVO: botão engrenagem (slot do teu favicon) */
+        .gear-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, .10);
+            background: transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: .18s ease;
             flex: 0 0 auto;
+        }
+
+        .gear-btn:hover {
+            border-color: rgba(161, 26, 50, .35);
+            background: rgba(161, 26, 50, .06);
+        }
+
+        /* ✅ slot pra você trocar por imagem */
+        .gear-icon {
+            width: 18px;
+            height: 18px;
+            display: block;
+            object-fit: contain;
+        }
+
+        /* fallback se você não colocar imagem */
+        .gear-fallback {
+            font-size: 16px;
+            line-height: 1;
         }
 
         .login-btn {
@@ -146,7 +172,6 @@
             min-width: 0;
         }
 
-        /* topbar só pra mobile/geral (não muda cores) */
         .topbar {
             display: none;
             align-items: center;
@@ -171,7 +196,6 @@
             flex: 1;
             overflow-y: auto;
             padding: 20px 12px 24px 24px;
-            /* espaço pro input fixo no mobile */
             padding-bottom: calc(24px + 72px + env(safe-area-inset-bottom));
         }
 
@@ -343,9 +367,16 @@
 
         <div class="sidebar-footer">
             <div class="user-pill" title="">
-                <span class="user-dot"></span>
+                <!-- ✅ NOVO: engrenagem clicável -->
+                <button id="accountBtn" class="gear-btn" title="Configurações">
+                    <!-- Coloca tua imagem aqui quando quiser -->
+                    <!-- <img class="gear-icon" src="/static/gear.png" alt="Configurações"> -->
+                    <span class="gear-fallback">⚙️</span>
+                </button>
+
                 <span id="userName">Usuário</span>
             </div>
+
             <button id="logoutBtn" class="login-btn">Sair</button>
         </div>
     </div>
@@ -374,20 +405,23 @@
         const userNameEl = document.getElementById("userName");
         const logoutBtn = document.getElementById("logoutBtn");
 
+        // ✅ NOVO: botão conta/configurações
+        const accountBtn = document.getElementById("accountBtn");
+        accountBtn?.addEventListener("click", () => {
+            window.location.href = "/account";
+        });
+
         // drawer
         const menuBtn = document.getElementById("menuBtn");
         const overlay = document.getElementById("overlay");
 
         function openSidebar() { document.body.classList.add("sidebar-open"); }
         function closeSidebar() { document.body.classList.remove("sidebar-open"); }
-        function toggleSidebar() {
-            document.body.classList.toggle("sidebar-open");
-        }
+        function toggleSidebar() { document.body.classList.toggle("sidebar-open"); }
 
         menuBtn?.addEventListener("click", toggleSidebar);
         overlay?.addEventListener("click", closeSidebar);
 
-        // fecha sidebar ao clicar num chat no mobile (qualidade de vida)
         function closeSidebarIfMobile() {
             if (window.matchMedia("(max-width: 900px)").matches) closeSidebar();
         }
@@ -525,7 +559,6 @@
                     closeSidebarIfMobile();
                 };
 
-                // clique direito (no mobile geralmente não existe, mas no desktop tá ok)
                 btn.oncontextmenu = (e) => {
                     e.preventDefault();
                     abrirMenuChat(e.pageX, e.pageY, c.id, btn.textContent);
@@ -617,7 +650,6 @@
         sendBtn.addEventListener("click", enviar);
         inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
 
-        // INIT: confirma sessão no servidor
         (async () => {
             try {
                 const me = await api("/auth/me");
@@ -649,9 +681,7 @@
             }
         })();
 
-        // melhora “pulo” do teclado (mobile)
         window.addEventListener("resize", () => {
-            // quando o teclado abre, rola pro fim
             messagesEl.scrollTop = messagesEl.scrollHeight;
         });
     </script>

@@ -1,0 +1,631 @@
+<!-- templates/account.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minha Conta — Maggie</title>
+
+  <style>
+    :root {
+      --bg: #dce2ee;
+      --ver: #a11a32;
+      --dark: #24272c;
+      --white: #f2f3f9;
+      --shadow: 0 22px 60px rgba(36, 39, 44, .14);
+      --radius: 20px;
+      --border: 1px solid rgba(0, 0, 0, .08);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--dark);
+      display: flex;
+    }
+
+    /* Sidebar igual vibe do chat */
+    .sidebar {
+      width: 14vw;
+      min-width: 220px;
+      background: var(--white);
+      padding: 24px;
+      border-right: 1px solid rgba(0, 0, 0, .05);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar h1 {
+      font-size: 18px;
+      margin: 0 0 6px 0;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+      flex: 1;
+    }
+
+    .nav a,
+    .nav button {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, .10);
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      font-size: 13px;
+      color: var(--dark);
+      text-decoration: none;
+      transition: .18s ease;
+    }
+
+    .nav a:hover,
+    .nav button:hover {
+      border-color: rgba(0, 0, 0, .22);
+      background: rgba(161, 26, 50, 0.07);
+    }
+
+    .nav a.active {
+      border-color: rgba(0, 0, 0, .22);
+      background: rgba(161, 26, 50, 0.10);
+      font-weight: 800;
+    }
+
+    .sidebar-footer {
+      padding-top: 12px;
+      border-top: 1px solid rgba(0, 0, 0, .06);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .user-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--ver);
+      flex: 0 0 auto;
+    }
+
+    .logout-btn {
+      border: none;
+      background: transparent;
+      color: var(--dark);
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+      font-size: 13px;
+      flex: 0 0 auto;
+    }
+
+    /* Main */
+    .main {
+      width: 86vw;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 3.5em 24px 24px 24px;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .page-title {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: .2px;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      font-size: 13px;
+      opacity: .78;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--white);
+      border: var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .card h2 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      letter-spacing: .2px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 800;
+      margin: 12px 0 8px;
+      opacity: .9;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(0, 0, 0, .14);
+      background: #fff;
+      padding: 12px 14px;
+      font-size: 14px;
+      outline: none;
+      transition: .18s ease;
+      color: var(--dark);
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: rgba(161, 26, 50, .55);
+      box-shadow: 0 0 0 6px rgba(161, 26, 50, .12);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .row .full {
+      grid-column: 1 / -1;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 14px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: .18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+      font-size: 13px;
+    }
+
+    .btnPrimary {
+      background: var(--ver);
+      color: var(--white);
+      box-shadow: 0 10px 20px rgba(161, 26, 50, .25);
+    }
+
+    .btnPrimary:hover {
+      transform: translateY(-1px);
+    }
+
+    .btnGhost {
+      background: transparent;
+      color: var(--dark);
+      border: 1px solid rgba(0, 0, 0, .14);
+    }
+
+    .btnGhost:hover {
+      border-color: rgba(161, 26, 50, .35);
+    }
+
+    .btnDanger {
+      background: transparent;
+      color: var(--ver);
+      border: 1px solid rgba(161, 26, 50, .35);
+    }
+
+    .btnDanger:hover {
+      background: rgba(161, 26, 50, .08);
+    }
+
+    .hint {
+      font-size: 12px;
+      opacity: .78;
+      margin-top: 8px;
+      line-height: 1.35;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(161, 26, 50, .10);
+      color: var(--ver);
+      border: 1px solid rgba(161, 26, 50, .18);
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .toast {
+      margin-top: 10px;
+      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, .12);
+      display: none;
+      background: rgba(0, 0, 0, .03);
+    }
+
+    .toast.ok {
+      border-color: rgba(0, 140, 70, .25);
+      background: rgba(0, 140, 70, .08);
+      display: block;
+    }
+
+    .toast.err {
+      border-color: rgba(161, 26, 50, .28);
+      background: rgba(161, 26, 50, .08);
+      display: block;
+    }
+
+    /* Responsivo básico */
+    @media (max-width: 950px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        min-width: 0;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-right: none;
+        border-bottom: 1px solid rgba(0, 0, 0, .06);
+      }
+
+      .nav {
+        flex-direction: row;
+        overflow-x: auto;
+        flex: 1;
+        gap: 8px;
+      }
+
+      .nav a,
+      .nav button {
+        white-space: nowrap;
+        width: auto;
+      }
+
+      .main {
+        width: 100%;
+        padding: 16px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div>
+      <h1>Maggie</h1>
+      <div class="nav">
+        <a href="/" class="btnGhost">← Voltar pro chat</a>
+        <a href="/account" class="active">Conta</a>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-pill" title="">
+        <span class="user-dot"></span>
+        <span id="userName">Usuário</span>
+      </div>
+      <button id="logoutBtn" class="logout-btn">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h2 class="page-title">Minha conta</h2>
+        <p class="sub">Ajusta teu perfil e segurança. Senha ninguém “vê” — só troca 😅</p>
+      </div>
+      <span class="pill" id="pillEmail">email: --</span>
+    </div>
+
+    <div class="grid">
+      <!-- PERFIL -->
+      <section class="card">
+        <h2>Perfil (pra Maggie te entender melhor)</h2>
+
+        <div class="row">
+          <div class="full">
+            <label>Nome</label>
+            <input id="name" type="text" placeholder="Seu nome" />
+          </div>
+
+          <div>
+            <label>Idade</label>
+            <input id="age" type="number" min="10" max="99" placeholder="17" />
+          </div>
+
+          <div>
+            <label>Email (só leitura aqui)</label>
+            <input id="email" type="text" disabled />
+          </div>
+
+          <div class="full">
+            <label>Situação atual</label>
+            <textarea id="context" placeholder="Ex: tô terminando o técnico, quero melhorar de vida..."></textarea>
+          </div>
+
+          <div class="full">
+            <label>Objetivo</label>
+            <textarea id="goal" placeholder="Ex: escolher curso, montar plano, conseguir trampo..."></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="saveProfile" class="btn btnPrimary">Salvar perfil ➜</button>
+        </div>
+
+        <div class="hint">Isso aqui é pra personalizar as respostas, não pra ficar público.</div>
+        <div id="toastProfile" class="toast"></div>
+      </section>
+
+      <!-- SEGURANÇA + CONTA -->
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <section class="card">
+          <h2>Segurança</h2>
+
+          <label>Senha atual</label>
+          <input id="currentPass" type="password" placeholder="••••••••" />
+
+          <label>Nova senha</label>
+          <input id="newPass" type="password" placeholder="••••••••" />
+
+          <label>Confirmar nova senha</label>
+          <input id="newPass2" type="password" placeholder="••••••••" />
+
+          <div class="actions">
+            <button id="changePass" class="btn btnPrimary">Trocar senha ➜</button>
+          </div>
+
+          <div class="hint">A senha antiga nunca aparece. Trocar é o máximo que dá.</div>
+          <div id="toastPass" class="toast"></div>
+        </section>
+
+        <section class="card">
+          <h2>Conta</h2>
+
+          <div class="hint">
+            Apagar conta apaga tudo (chats + mensagens). Se fizer, fez. Sem choro.
+          </div>
+
+          <label>Confirmação pra apagar (digita <b>DELETE</b>)</label>
+          <input id="deleteConfirm" type="text" placeholder="DELETE" />
+
+          <label>Senha atual (pra confirmar)</label>
+          <input id="deletePass" type="password" placeholder="••••••••" />
+
+          <div class="actions" style="justify-content: space-between;">
+            <button id="logoutBtn2" class="btn btnGhost">Sair da conta</button>
+            <button id="deleteBtn" class="btn btnDanger">Apagar conta</button>
+          </div>
+
+          <div id="toastDelete" class="toast"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    async function api(url, options = {}) {
+      const res = await fetch(url, options);
+      const txt = await res.text();
+      let data = {};
+      try { data = txt ? JSON.parse(txt) : {}; } catch { data = {}; }
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      return data;
+    }
+
+    function toast(el, kind, msg) {
+      el.className = "toast " + kind;
+      el.textContent = msg;
+      el.style.display = "block";
+      setTimeout(() => { el.style.display = "none"; }, 3500);
+    }
+
+    const userNameEl = document.getElementById("userName");
+    const pillEmailEl = document.getElementById("pillEmail");
+
+    const nameEl = document.getElementById("name");
+    const ageEl = document.getElementById("age");
+    const emailEl = document.getElementById("email");
+    const contextEl = document.getElementById("context");
+    const goalEl = document.getElementById("goal");
+
+    const toastProfile = document.getElementById("toastProfile");
+    const toastPass = document.getElementById("toastPass");
+    const toastDelete = document.getElementById("toastDelete");
+
+    async function loadMe() {
+      try {
+        const me = await api("/auth/me");
+        const u = me.user || {};
+        const nm = u.name || "Usuário";
+
+        userNameEl.textContent = nm;
+        userNameEl.title = nm;
+
+        nameEl.value = u.name || "";
+        ageEl.value = (u.age ?? "") === null ? "" : (u.age ?? "");
+        emailEl.value = u.email || "";
+
+        // pill com email mascarado
+        const email = (u.email || "").trim();
+        if (email) {
+          const [a, b] = email.split("@");
+          const masked = (a || "").slice(0, 2) + "***@" + (b || "");
+          pillEmailEl.textContent = "email: " + masked;
+        } else {
+          pillEmailEl.textContent = "email: --";
+        }
+
+        contextEl.value = u.context || "";
+        goalEl.value = u.goal || "";
+      } catch {
+        window.location.href = "/login";
+      }
+    }
+
+    // PERFIL
+    document.getElementById("saveProfile").addEventListener("click", async () => {
+      const payload = {
+        name: nameEl.value.trim(),
+        age: ageEl.value.trim(),
+        context: contextEl.value.trim(),
+        goal: goalEl.value.trim(),
+      };
+
+      try {
+        await api("/account/profile", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        toast(toastProfile, "ok", "Perfil salvo ✅");
+        // atualiza topo
+        userNameEl.textContent = payload.name || "Usuário";
+        userNameEl.title = payload.name || "Usuário";
+      } catch (e) {
+        toast(toastProfile, "err", "Não rolou salvar 😔 " + (e.message || e));
+      }
+    });
+
+    // TROCAR SENHA
+    document.getElementById("changePass").addEventListener("click", async () => {
+      const current = document.getElementById("currentPass").value.trim();
+      const np = document.getElementById("newPass").value.trim();
+      const np2 = document.getElementById("newPass2").value.trim();
+
+      if (!current || !np || !np2) {
+        toast(toastPass, "err", "Preenche tudo aí 🙂");
+        return;
+      }
+      if (np !== np2) {
+        toast(toastPass, "err", "As senhas novas não batem 😅");
+        return;
+      }
+
+      try {
+        await api("/account/password", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ current_password: current, new_password: np })
+        });
+
+        document.getElementById("currentPass").value = "";
+        document.getElementById("newPass").value = "";
+        document.getElementById("newPass2").value = "";
+
+        toast(toastPass, "ok", "Senha trocada ✅");
+      } catch (e) {
+        toast(toastPass, "err", "Não rolou trocar 😔 " + (e.message || e));
+      }
+    });
+
+    // LOGOUT (2 botões)
+    async function logout() {
+      try { await api("/auth/logout", { method: "POST" }); } catch { }
+      localStorage.removeItem("chat_id");
+      localStorage.removeItem("user_id");
+      localStorage.removeItem("user_name");
+      window.location.href = "/login";
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+    document.getElementById("logoutBtn2").addEventListener("click", logout);
+
+    // DELETE ACCOUNT
+    document.getElementById("deleteBtn").addEventListener("click", async () => {
+      const conf = document.getElementById("deleteConfirm").value.trim();
+      const pass = document.getElementById("deletePass").value.trim();
+
+      if (conf !== "DELETE") {
+        toast(toastDelete, "err", "Digita DELETE certinho aí 😅");
+        return;
+      }
+      if (!pass) {
+        toast(toastDelete, "err", "Falta sua senha atual 🙂");
+        return;
+      }
+
+      if (!confirm("Última chance: apagar conta apaga tudo. Confirma?")) return;
+
+      try {
+        await api("/account", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: pass })
+        });
+
+        await logout();
+      } catch (e) {
+        toast(toastDelete, "err", "Não rolou apagar 😔 " + (e.message || e));
+      }
+    });
+
+    // init
+    loadMe();
+  </script>
+</body>
+
+</html>

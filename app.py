@@ -5,6 +5,7 @@ import os
 from flask import Flask, request, jsonify, send_from_directory, render_template, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from ai import responder
 from tts import gerar_audio
@@ -16,9 +17,13 @@ os.makedirs("audios", exist_ok=True)
 # No Render/Prod: crie env FLASK_SECRET_KEY com algo forte
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-nao-use-em-prod")
 
-# cookies da sessão (Render usa https)
+# Render/Reverse proxy: garante que Flask entenda HTTPS
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# cookies da sessão
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
 # Se estiver no Render (HTTPS), melhor setar Secure
 if os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL"):
     app.config["SESSION_COOKIE_SECURE"] = True
@@ -29,6 +34,21 @@ init_db()
 
 def get_db():
     return SessionLocal()
+
+
+# =========================
+# HELPERS
+# =========================
+
+def require_login():
+    return session.get("user_id")
+
+
+def get_current_user(db):
+    uid = require_login()
+    if not uid:
+        return None
+    return db.query(User).filter(User.id == int(uid)).first()
 
 
 # =========================
@@ -45,13 +65,21 @@ def login_page():
     return render_template("login.html")
 
 
+@app.route("/account")
+def account_page():
+    # página protegida
+    if not require_login():
+        return render_template("login.html")
+    return render_template("account.html")
+
+
 # =========================
 # AUTH
 # =========================
 
 @app.route("/auth/me", methods=["GET"])
 def auth_me():
-    uid = session.get("user_id")
+    uid = require_login()
     if not uid:
         return jsonify({"logged": False}), 401
 
@@ -91,6 +119,9 @@ def auth_signup():
 
     if not name or not email or not password:
         return jsonify({"error": "nome, email e senha são obrigatórios"}), 400
+
+    if len(password) < 6:
+        return jsonify({"error": "senha muito curta (mín 6 caracteres)"}), 400
 
     db = get_db()
     try:
@@ -145,12 +176,121 @@ def auth_logout():
 
 
 # =========================
-# CHATS (com login)
+# ACCOUNT (dashboard)
 # =========================
 
-def require_login():
-    return session.get("user_id")
+@app.route("/account/profile", methods=["PUT"])
+def account_update_profile():
+    uid = require_login()
+    if not uid:
+        return jsonify({"error": "não autenticado"}), 401
 
+    data = request.json or {}
+    name = (data.get("name") or "").strip() or None
+    age = data.get("age")
+    context = (data.get("context") or "").strip() or None
+    goal = (data.get("goal") or "").strip() or None
+
+    # valida idade (se vier)
+    age_val = None
+    if str(age).strip():
+        try:
+            age_val = int(age)
+            if age_val < 10 or age_val > 99:
+                return jsonify({"error": "idade inválida"}), 400
+        except:
+            return jsonify({"error": "idade inválida"}), 400
+
+    db = get_db()
+    try:
+        u = get_current_user(db)
+        if not u:
+            session.pop("user_id", None)
+            return jsonify({"error": "sessão inválida"}), 401
+
+        u.name = name
+        u.age = age_val
+        u.context = context
+        u.goal = goal
+        db.commit()
+
+        return jsonify({"ok": True})
+    finally:
+        db.close()
+
+
+@app.route("/account/password", methods=["PUT"])
+def account_change_password():
+    uid = require_login()
+    if not uid:
+        return jsonify({"error": "não autenticado"}), 401
+
+    data = request.json or {}
+    current_password = (data.get("current_password") or "").strip()
+    new_password = (data.get("new_password") or "").strip()
+
+    if not current_password or not new_password:
+        return jsonify({"error": "preencha senha atual e nova senha"}), 400
+
+    if len(new_password) < 6:
+        return jsonify({"error": "senha muito curta (mín 6 caracteres)"}), 400
+
+    db = get_db()
+    try:
+        u = get_current_user(db)
+        if not u:
+            session.pop("user_id", None)
+            return jsonify({"error": "sessão inválida"}), 401
+
+        if not u.password_hash or not check_password_hash(u.password_hash, current_password):
+            return jsonify({"error": "senha atual incorreta"}), 401
+
+        u.password_hash = generate_password_hash(new_password)
+        db.commit()
+        return jsonify({"ok": True})
+    finally:
+        db.close()
+
+
+@app.route("/account", methods=["DELETE"])
+def account_delete():
+    uid = require_login()
+    if not uid:
+        return jsonify({"error": "não autenticado"}), 401
+
+    data = request.json or {}
+    password = (data.get("password") or "").strip()
+    if not password:
+        return jsonify({"error": "senha é obrigatória"}), 400
+
+    db = get_db()
+    try:
+        u = get_current_user(db)
+        if not u:
+            session.pop("user_id", None)
+            return jsonify({"error": "sessão inválida"}), 401
+
+        if not u.password_hash or not check_password_hash(u.password_hash, password):
+            return jsonify({"error": "senha incorreta"}), 401
+
+        # apaga chats + mensagens (cascade já ajuda, mas vamos garantir)
+        chats = db.query(Chat).filter(Chat.user_id == int(uid)).all()
+        for c in chats:
+            db.query(Message).filter(Message.chat_id == c.id).delete()
+            db.delete(c)
+
+        db.delete(u)
+        db.commit()
+
+        session.pop("user_id", None)
+        return jsonify({"ok": True})
+    finally:
+        db.close()
+
+
+# =========================
+# CHATS (com login)
+# =========================
 
 @app.route("/chats", methods=["POST"])
 def create_chat():
@@ -337,7 +477,6 @@ def delete_chat(chat_id):
 
 @app.route("/audio/<nome>")
 def audio(nome):
-    # evita path traversal
     safe = secure_filename(nome)
     return send_from_directory("audios", safe)
 
