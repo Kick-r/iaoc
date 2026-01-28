@@ -51,22 +51,22 @@ O objetivo do sistema é oferecer um ambiente simples e acessível onde o usuár
 
 ## 4. Arquitetura e Organização do Projeto
 iaoc/
-├── app.py              # Servidor Flask, rotas e lógica principal
-├── db.py               # ORM SQLAlchemy e modelos do banco de dados
-├── ai.py               # Integração com IA (Groq) e formatação de saída
-├── tts.py              # Síntese de voz (edge-tts)
-├── requirements.txt    # Dependências do projeto
-├── README.md           # Documentação do projeto
-│
+├── app.py              # Servidor Flask, rotas e lógica principal  
+├── db.py               # ORM SQLAlchemy e modelos do banco de dados  
+├── ai.py               # Integração com IA (Groq) e formatação de saída  
+├── tts.py              # Síntese de voz (edge-tts)  
+├── requirements.txt    # Dependências do projeto  
+├── README.md           # Documentação do projeto  
+│  
 ├── templates/
-│   ├── index.html      # Interface principal do chat
-│   └── login.html      # Tela de login e cadastro
-│
-├── static/
-│   └── (opcional)      # Ícones, imagens e arquivos estáticos
-│
-└── audios/
-    └── (runtime)       # Arquivos de áudio gerados dinamicamente
+│   ├── index.html      # Interface principal do chat  
+│   └── login.html      # Tela de login e cadastro  
+│  
+├── static/  
+│   └── (opcional)      # Ícones, imagens e arquivos estáticos  
+│  
+└── audios/  
+    └── (runtime)       # Arquivos de áudio gerados dinamicamente  
 
 ---
 
