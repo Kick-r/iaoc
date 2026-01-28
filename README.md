@@ -49,8 +49,8 @@ O objetivo do sistema é oferecer um ambiente simples e acessível onde o usuár
 
 ---
 
-## 4. Arquitetura e Organização do Projeto
-iaoc/
+## 4. Arquitetura e Organização do Projeto  
+iaoc/  
 ├── app.py              # Servidor Flask, rotas e lógica principal  
 ├── db.py               # ORM SQLAlchemy e modelos do banco de dados  
 ├── ai.py               # Integração com IA (Groq) e formatação de saída  
@@ -58,7 +58,7 @@ iaoc/
 ├── requirements.txt    # Dependências do projeto  
 ├── README.md           # Documentação do projeto  
 │  
-├── templates/
+├── templates/  
 │   ├── index.html      # Interface principal do chat  
 │   └── login.html      # Tela de login e cadastro  
 │  
